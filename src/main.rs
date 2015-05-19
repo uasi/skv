@@ -1,5 +1,8 @@
 extern crate clap;
+
 use clap::{App, Arg};
+
+mod parse;
 
 fn main() {
     let matches = App::new("skv")
@@ -9,5 +12,5 @@ fn main() {
             .multiple(true))
         .get_matches();
     let pairs = matches.values_of("key-value pairs").unwrap_or(vec![]);
-    println!("pairs: {:?}", pairs);
+    println!("{:?}", parse::parse(&pairs));
 }
