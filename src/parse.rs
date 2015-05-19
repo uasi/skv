@@ -10,6 +10,8 @@ const SEP_RAW_JSON_FILE   : &'static str = ":=@";
 const SEP_RAW_JSON_STRING : &'static str = ":=";
 const SEP_URL_PARAM       : &'static str = "==";
 
+pub type Pair = (String, Option<Value>);
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     DataFile(String),
@@ -37,9 +39,11 @@ impl Value {
     }
 }
 
-pub fn parse<T>(items: &[T]) -> Vec<(String, Option<Value>)>
+pub fn parse<T>(items: &[T]) -> Vec<Pair>
 where T: AsRef<str> {
-    items.iter().map(|item| kv_from_tokens(tokenize(item.as_ref()))).collect()
+    items.iter().map(|item|
+        pair_from_tokens(tokenize(item.as_ref()))
+    ).collect()
 }
 
 #[derive(Debug)]
@@ -62,7 +66,7 @@ fn tokenize(s: &str) -> Vec<Token> {
     tokens
 }
 
-fn kv_from_tokens(tokens: Vec<Token>) -> (String, Option<Value>) {
+fn pair_from_tokens(tokens: Vec<Token>) -> Pair {
     let mut key = String::new();
     let mut value = String::new();
     let mut sep = "".to_string();

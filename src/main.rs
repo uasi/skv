@@ -33,7 +33,7 @@ impl parse::Value {
         }
     }
 
-    fn to_typed_json(&self) -> json::Value {
+    fn to_json_for_dump(&self) -> json::Value {
         let mut map = BTreeMap::new();
         let (ty, value) = match *self {
             parse::Value::DataFile(ref path)    => ("data_file", path),
@@ -50,24 +50,24 @@ impl parse::Value {
     }
 }
 
-fn to_json(kvs: &[(String, Option<parse::Value>)]) -> String {
+fn to_json(pairs: &[parse::Pair]) -> String {
     let mut map = BTreeMap::new();
-    for kv in kvs.iter() {
-        let k = kv.0.clone();
-        let v = kv.1.clone().map(|v| v.to_json()).unwrap_or(json::Value::Null);
+    for pair in pairs.iter() {
+        let k = pair.0.clone();
+        let v = pair.1.clone().map(|v| v.to_json()).unwrap_or(json::Value::Null);
         map.insert(k, v);
     }
     let root = json::Value::Object(map);
     json::ser::to_string(&root).unwrap_or("".to_string())
 }
 
-fn dump(kvs: &[(String, Option<parse::Value>)]) -> String {
-    let kv_arrays = kvs.iter().map(|kv| {
-        let k = json::Value::String(kv.0.clone());
-        let v = kv.1.clone().map(|v| v.to_typed_json()).unwrap_or(json::Value::Null);
+fn dump(pairs: &[parse::Pair]) -> String {
+    let kvs = pairs.iter().map(|pair| {
+        let k = json::Value::String(pair.0.clone());
+        let v = pair.1.clone().map(|v| v.to_json_for_dump()).unwrap_or(json::Value::Null);
         json::Value::Array(vec![k, v])
     }).collect();
-    let root = json::Value::Array(kv_arrays);
+    let root = json::Value::Array(kvs);
     json::ser::to_string(&root).unwrap_or("".to_string())
 }
 
@@ -83,10 +83,10 @@ fn main() {
             .multiple(true))
         .get_matches();
     let items = matches.values_of("key-value pairs").unwrap_or(vec![]);
-    let kvs = parse::parse(&items);
+    let pairs = parse::parse(&items);
     if matches.is_present("dump") {
-        println!("{}", dump(&kvs));
+        println!("{}", dump(&pairs));
     } else {
-        println!("{}", to_json(&kvs));
+        println!("{}", to_json(&pairs));
     }
 }
