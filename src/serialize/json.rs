@@ -5,19 +5,35 @@ use std::fs::File;
 use std::io::{self, Read};
 
 impl parse::Value {
-    fn to_json(&self) -> json::Value {
-        let maybe_s = match *self {
-            parse::Value::DataFile(ref path)    => slurp(path).ok(),
-            parse::Value::DataString(ref s)     => Some(s.to_string()),
-            parse::Value::FormFile(ref path)    => slurp(path).ok(),
-            parse::Value::HttpHeader(ref s)     => Some(s.to_string()),
-            parse::Value::RawJsonString(ref s)  => Some(s.to_string()),
-            parse::Value::RawJsonFile(ref path) => slurp(path).ok().and_then(|s| json::from_str(&s).ok()),
-            parse::Value::UrlParam(ref s)       => Some(s.to_string()),
-        };
-        match maybe_s {
-            Some(s) => json::Value::String(s),
-            None    => json::Value::Null,
+    fn to_json(&self) -> Option<json::Value> {
+        match *self {
+            parse::Value::DataFile(ref path) => {
+                slurp(path)
+                    .ok()
+                    .and_then(|s| Some(json::Value::String(s)))
+            }
+            parse::Value::DataString(ref s) => {
+                Some(json::Value::String(s.to_string()))
+            }
+            parse::Value::FormFile(ref path) => {
+                slurp(path)
+                    .ok()
+                    .and_then(|s| Some(json::Value::String(s)))
+            }
+            parse::Value::HttpHeader(ref s) => {
+                Some(json::Value::String(s.to_string()))
+            }
+            parse::Value::RawJsonString(ref s) => {
+                json::from_str(s).unwrap_or(None)
+            }
+            parse::Value::RawJsonFile(ref path) => {
+                slurp(path)
+                    .ok()
+                    .and_then(|s| json::from_str(&s).ok())
+            }
+            parse::Value::UrlParam(ref s) => {
+                Some(json::Value::String(s.to_string()))
+            }
         }
     }
 }
@@ -25,9 +41,11 @@ impl parse::Value {
 pub fn to_json(pairs: &[parse::Pair]) -> String {
     let mut map = BTreeMap::new();
     for pair in pairs.iter() {
-        let k = pair.0.clone();
-        let v = pair.1.clone().map(|v| v.to_json()).unwrap_or(json::Value::Null);
-        map.insert(k, v);
+        let maybe_v = pair.1.clone().and_then(|v| v.to_json());
+        if let Some(v) = maybe_v {
+            let k = pair.0.clone();
+            map.insert(k, v);
+        }
     }
     let root = json::Value::Object(map);
     json::ser::to_string(&root).unwrap_or("".to_string())
