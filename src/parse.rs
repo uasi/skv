@@ -69,7 +69,7 @@ fn tokenize(s: &str) -> Vec<Token> {
 fn pair_from_tokens(tokens: Vec<Token>) -> Pair {
     let mut key = String::new();
     let mut value = String::new();
-    let mut sep = "".to_string();
+    let mut sep = String::new();
     let sep_re = Regex::new(r"(?s)(.*?)(:=@|:=|==|=@|:|=|@)(.*)").unwrap();
     let mut tokens_iter = tokens.into_iter();
     while let Some(token) = tokens_iter.next() {
